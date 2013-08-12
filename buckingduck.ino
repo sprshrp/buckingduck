@@ -15,16 +15,27 @@ int ledPin = 13;
 //holders for infromation you're going to pass to shifting function
 byte dataRED;
 byte dataArrayRED[10];
+
+byte dataArrayTenths[10];
+byte dataArraySeconds[10];
+byte dataArrayDecaseconds[10];
  
 byte off = 0x00;
 byte decimalpoint = 0x80;
 
-int i = 0;
+int i = 0; // tenths
+int clockTenths      = 0;
+int clockSeconds     = 0;
+int clockDecaseconds = 0;
+
 unsigned long previousMillis = 0;
-long interval = 1000;
+long intervalDecaseconds = 10000;
+long intervalSeconds     = 1000;
+long intervalTenths      = 100;
+
 
 unsigned long ledPreviousMillis = 0;
-long ledInterval = 5;
+long ledInterval = 1;
 
 
 // Big Red Button Stuff
@@ -59,6 +70,39 @@ void setup() {
   dataArrayRED[7] = B00000111;
   dataArrayRED[8] = B01111111;
   dataArrayRED[9] = B01100111;
+  
+  dataArrayTenths[0] = B00111111;
+  dataArrayTenths[1] = B00000110;
+  dataArrayTenths[2] = B01011011;
+  dataArrayTenths[3] = B01001111;
+  dataArrayTenths[4] = B01100110;
+  dataArrayTenths[5] = B01101101;
+  dataArrayTenths[6] = B01111101;
+  dataArrayTenths[7] = B00000111;
+  dataArrayTenths[8] = B01111111;
+  dataArrayTenths[9] = B01100111;
+
+  dataArraySeconds[0] = B10111111;
+  dataArraySeconds[1] = B10000110;
+  dataArraySeconds[2] = B11011011;
+  dataArraySeconds[3] = B11001111;
+  dataArraySeconds[4] = B11100110;
+  dataArraySeconds[5] = B11101101;
+  dataArraySeconds[6] = B11111101;
+  dataArraySeconds[7] = B10000111;
+  dataArraySeconds[8] = B11111111;
+  dataArraySeconds[9] = B11100111;
+
+  dataArrayDecaseconds[0] = B00111111;
+  dataArrayDecaseconds[1] = B00000110;
+  dataArrayDecaseconds[2] = B01011011;
+  dataArrayDecaseconds[3] = B01001111;
+  dataArrayDecaseconds[4] = B01100110;
+  dataArrayDecaseconds[5] = B01101101;
+  dataArrayDecaseconds[6] = B01111101;
+  dataArrayDecaseconds[7] = B00000111;
+  dataArrayDecaseconds[8] = B01111111;
+  dataArrayDecaseconds[9] = B01100111;  
   
   state = WAITING;
 
@@ -105,6 +149,7 @@ void waiting()
 {
   turnOffDigits();
   analogWrite(buttonLEDPin,LEDBrightness);
+  delay(1);
   unsigned long currentMillis = millis();
  
   if(currentMillis - ledPreviousMillis > ledInterval) {
@@ -121,10 +166,8 @@ void waiting()
       LEDBrightness++;  
     } else {
       LEDBrightness--;
-    }
+    } 
   }
-  
-  
 }
 
 void turnOffDigits()
@@ -133,6 +176,7 @@ void turnOffDigits()
     shiftOut(dataPin, clockPin, off);
     digitalWrite(latchPin, 1); 
     i = 0;
+    clockSeconds = 0;
 }
 
 void stopwatch()
@@ -141,13 +185,20 @@ void stopwatch()
   int val = 10; //this is for how many digits
   unsigned long currentMillis = millis();
  
-  if(currentMillis - previousMillis > interval) {
+  if(currentMillis - previousMillis > intervalTenths) {
     if(i == count )
     {
      i = 0; 
+     clockSeconds++;
+     if(clockSeconds == count)
+     {
+       clockSeconds = 0;
+       clockDecaseconds++; 
+     }
     }
     previousMillis = currentMillis;   
     digitalWrite(latchPin, 0);   
+    shiftOut(dataPin, clockPin, dataArraySeconds[clockSeconds]);
     shiftOut(dataPin, clockPin, dataArrayRED[i]);
     digitalWrite(latchPin, 1);
     i++;
