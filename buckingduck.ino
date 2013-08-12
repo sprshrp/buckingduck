@@ -20,10 +20,10 @@ byte off = 0x00;
 byte decimalpoint = 0x80;
 
 int i = 0;
-int previousMillis = 0;
-long interval = 250;
+unsigned long previousMillis = 0;
+long interval = 1000;
 
-int ledPreviousMillis = 0;
+unsigned long ledPreviousMillis = 0;
 long ledInterval = 5;
 
 
@@ -84,9 +84,8 @@ int checkButtonState()
   buttonState = digitalRead(buttonPin);
   if(buttonState == HIGH && oldState == LOW){
      lightState = 1 - lightState; 
-     delay(10);
+     delay(25);
   }
-  
   oldState = buttonState;
   // check if the pushbutton is pressed.
   // if it is, the buttonState is HIGH:
@@ -96,7 +95,6 @@ int checkButtonState()
     state = STOPWATCH;
   } 
   else {
-    
     // turn LED off:
     digitalWrite(ledPin, LOW); 
     state = WAITING;
@@ -144,7 +142,7 @@ void stopwatch()
   unsigned long currentMillis = millis();
  
   if(currentMillis - previousMillis > interval) {
-    if(i == count - 1)
+    if(i == count )
     {
      i = 0; 
     }
