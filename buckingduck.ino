@@ -1,5 +1,6 @@
 #define STOPWATCH 1
 #define WAITING 2
+#define FLASHING 3
 
 
 int dataPin = 11;
@@ -125,23 +126,45 @@ void loop() {
 
 int checkButtonState()
 {
+  boolean stateshift = false;
   buttonState = digitalRead(buttonPin);
   if(buttonState == HIGH && oldState == LOW){
-     lightState = 1 - lightState; 
-     delay(25);
+    // lightState = 1 - lightState; 
+    
+    // shift state
+    stateshift = true;
+    delay(10);
   }
   oldState = buttonState;
   // check if the pushbutton is pressed.
   // if it is, the buttonState is HIGH:
-  if (lightState  == 1) {     
-    // turn LED on:    
-    digitalWrite(ledPin, HIGH);
-    state = STOPWATCH;
-  } 
-  else {
-    // turn LED off:
-    digitalWrite(ledPin, LOW); 
-    state = WAITING;
+  
+  if (stateshift) {
+    switch(state){
+      case WAITING:
+        digitalWrite(ledPin, LOW);      
+        state = STOPWATCH;
+        break;
+      case STOPWATCH:
+        state = FLASHING;
+        break;
+      case FLASHING:
+        state = WAITING;      
+        digitalWrite(ledPin, HIGH);
+        break;
+    }
+    /*
+    if (lightState  == 1) {     
+      // turn LED on:    
+      digitalWrite(ledPin, HIGH);
+      state = STOPWATCH;
+    } 
+    else {
+      // turn LED off:
+      digitalWrite(ledPin, LOW); 
+      state = WAITING;
+    }
+    */
   }
 }
 
@@ -194,10 +217,15 @@ void stopwatch()
      {
        clockSeconds = 0;
        clockDecaseconds++; 
+       if(clockDecaseconds == count)
+       {
+        clockDecaseconds = 0; 
+       }
      }
     }
     previousMillis = currentMillis;   
     digitalWrite(latchPin, 0);   
+    shiftOut(dataPin, clockPin, dataArrayDecaseconds[clockDecaseconds]);
     shiftOut(dataPin, clockPin, dataArraySeconds[clockSeconds]);
     shiftOut(dataPin, clockPin, dataArrayRED[i]);
     digitalWrite(latchPin, 1);
