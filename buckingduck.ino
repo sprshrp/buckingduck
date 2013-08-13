@@ -12,14 +12,9 @@ int buttonLEDPin = 10;
 int buttonPin = 9;
 int ledPin = 13;
 
- 
 //holders for infromation you're going to pass to shifting function
-byte dataRED;
-byte dataArrayRED[10];
-
-byte dataArrayTenths[10];
-byte dataArraySeconds[10];
-byte dataArrayDecaseconds[10];
+byte digitLED[10];
+byte digitLEDdot[10];
  
 byte off = 0x00;
 byte decimalpoint = 0x80;
@@ -34,10 +29,14 @@ long intervalDecaseconds = 10000;
 long intervalSeconds     = 1000;
 long intervalTenths      = 100;
 
-
 unsigned long ledPreviousMillis = 0;
 long ledInterval = 1;
 
+
+// Flashing
+boolean stateFlash = false;
+unsigned long flashingPreviousMillis = 0;
+long intervalFlashing = 500;
 
 // Big Red Button Stuff
 int buttonState = 0;         // variable for reading the pushbutton status
@@ -61,52 +60,29 @@ void setup() {
   
   digitalWrite( clearPin, HIGH);
 
-  dataArrayRED[0] = B00111111;
-  dataArrayRED[1] = B00000110;
-  dataArrayRED[2] = B01011011;
-  dataArrayRED[3] = B01001111;
-  dataArrayRED[4] = B01100110;
-  dataArrayRED[5] = B01101101;
-  dataArrayRED[6] = B01111101;
-  dataArrayRED[7] = B00000111;
-  dataArrayRED[8] = B01111111;
-  dataArrayRED[9] = B01100111;
+  digitLED[0] = B00111111;
+  digitLED[1] = B00000110;
+  digitLED[2] = B01011011;
+  digitLED[3] = B01001111;
+  digitLED[4] = B01100110;
+  digitLED[5] = B01101101;
+  digitLED[6] = B01111101;
+  digitLED[7] = B00000111;
+  digitLED[8] = B01111111;
+  digitLED[9] = B01100111;
   
-  dataArrayTenths[0] = B00111111;
-  dataArrayTenths[1] = B00000110;
-  dataArrayTenths[2] = B01011011;
-  dataArrayTenths[3] = B01001111;
-  dataArrayTenths[4] = B01100110;
-  dataArrayTenths[5] = B01101101;
-  dataArrayTenths[6] = B01111101;
-  dataArrayTenths[7] = B00000111;
-  dataArrayTenths[8] = B01111111;
-  dataArrayTenths[9] = B01100111;
-
-  dataArraySeconds[0] = B10111111;
-  dataArraySeconds[1] = B10000110;
-  dataArraySeconds[2] = B11011011;
-  dataArraySeconds[3] = B11001111;
-  dataArraySeconds[4] = B11100110;
-  dataArraySeconds[5] = B11101101;
-  dataArraySeconds[6] = B11111101;
-  dataArraySeconds[7] = B10000111;
-  dataArraySeconds[8] = B11111111;
-  dataArraySeconds[9] = B11100111;
-
-  dataArrayDecaseconds[0] = B00111111;
-  dataArrayDecaseconds[1] = B00000110;
-  dataArrayDecaseconds[2] = B01011011;
-  dataArrayDecaseconds[3] = B01001111;
-  dataArrayDecaseconds[4] = B01100110;
-  dataArrayDecaseconds[5] = B01101101;
-  dataArrayDecaseconds[6] = B01111101;
-  dataArrayDecaseconds[7] = B00000111;
-  dataArrayDecaseconds[8] = B01111111;
-  dataArrayDecaseconds[9] = B01100111;  
+  digitLEDdot[0] = B10111111;
+  digitLEDdot[1] = B10000110;
+  digitLEDdot[2] = B11011011;
+  digitLEDdot[3] = B11001111;
+  digitLEDdot[4] = B11100110;
+  digitLEDdot[5] = B11101101;
+  digitLEDdot[6] = B11111101;
+  digitLEDdot[7] = B10000111;
+  digitLEDdot[8] = B11111111;
+  digitLEDdot[9] = B11100111;
   
   state = WAITING;
-
 }
  
 void loop() {
@@ -114,12 +90,15 @@ void loop() {
   checkButtonState();
   switch(state)
   {
-    case STOPWATCH:
-      stopwatch();
-      break;
     case WAITING:
       waiting();
       break;
+    case STOPWATCH:
+      stopwatch();
+      break;
+    case FLASHING:
+      flashing();
+      break;      
   }
 
 }
@@ -129,11 +108,10 @@ int checkButtonState()
   boolean stateshift = false;
   buttonState = digitalRead(buttonPin);
   if(buttonState == HIGH && oldState == LOW){
-    // lightState = 1 - lightState; 
-    
     // shift state
     stateshift = true;
-    delay(10);
+    // prevent "bouncing"
+    delay(20);
   }
   oldState = buttonState;
   // check if the pushbutton is pressed.
@@ -153,18 +131,6 @@ int checkButtonState()
         digitalWrite(ledPin, HIGH);
         break;
     }
-    /*
-    if (lightState  == 1) {     
-      // turn LED on:    
-      digitalWrite(ledPin, HIGH);
-      state = STOPWATCH;
-    } 
-    else {
-      // turn LED off:
-      digitalWrite(ledPin, LOW); 
-      state = WAITING;
-    }
-    */
   }
 }
 
@@ -200,6 +166,7 @@ void turnOffDigits()
     digitalWrite(latchPin, 1); 
     i = 0;
     clockSeconds = 0;
+    clockDecaseconds = 0;
 }
 
 void stopwatch()
@@ -225,12 +192,34 @@ void stopwatch()
     }
     previousMillis = currentMillis;   
     digitalWrite(latchPin, 0);   
-    shiftOut(dataPin, clockPin, dataArrayDecaseconds[clockDecaseconds]);
-    shiftOut(dataPin, clockPin, dataArraySeconds[clockSeconds]);
-    shiftOut(dataPin, clockPin, dataArrayRED[i]);
+    shiftOut(dataPin, clockPin, digitLED[clockDecaseconds]);
+    shiftOut(dataPin, clockPin, digitLEDdot[clockSeconds]);
+    shiftOut(dataPin, clockPin, digitLED[i]);
     digitalWrite(latchPin, 1);
     i++;
   }
+}
+
+void flashing()
+{
+  unsigned long currentMillis = millis();
+  if(currentMillis - flashingPreviousMillis > intervalFlashing) {  
+    flashingPreviousMillis = currentMillis; 
+    stateFlash = !stateFlash; 
+    if(stateFlash){
+      digitalWrite(latchPin, 0);   
+      shiftOut(dataPin, clockPin, digitLED[clockDecaseconds]);
+      shiftOut(dataPin, clockPin, digitLEDdot[clockSeconds]);
+      shiftOut(dataPin, clockPin, digitLED[i]);
+      digitalWrite(latchPin, 1);  
+    } else {
+      digitalWrite(latchPin, 0);   
+      shiftOut(dataPin, clockPin, off);
+      shiftOut(dataPin, clockPin, off);
+      shiftOut(dataPin, clockPin, off);
+      digitalWrite(latchPin, 1);      
+    }
+  } 
 }
  
  
