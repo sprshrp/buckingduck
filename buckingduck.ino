@@ -10,13 +10,14 @@ const int clearPin = 7;
 
 int buttonLEDPin = 10;
 int buttonPin = 9;
-int ledPin = 13;
 
 //holders for infromation you're going to pass to shifting function
 byte digitLED[10];
 byte digitLEDdot[10];
  
 byte off = 0x00;
+byte all = B11111111;
+
 byte decimalpoint = 0x80;
 
 int i = 0; // tenths
@@ -42,7 +43,7 @@ long intervalFlashing = 500;
 int buttonState = 0;         // variable for reading the pushbutton status
 int lightState = 0;
 int oldState = 0;
-int LEDBrightness = 0;
+int LEDBrightness = 255;
 boolean going_up = true;
 
 int state;
@@ -54,9 +55,7 @@ void setup() {
   pinMode(dataPin, OUTPUT);  
   pinMode(clockPin, OUTPUT);
   
-  pinMode(buttonLEDPin, OUTPUT);
   pinMode(buttonPin, INPUT);  
-  pinMode(ledPin, OUTPUT);
   
   digitalWrite( clearPin, HIGH);
 
@@ -81,6 +80,8 @@ void setup() {
   digitLEDdot[7] = B10000111;
   digitLEDdot[8] = B11111111;
   digitLEDdot[9] = B11100111;
+  
+  
   
   state = WAITING;
 }
@@ -107,7 +108,8 @@ int checkButtonState()
 {
   boolean stateshift = false;
   buttonState = digitalRead(buttonPin);
-  if(buttonState == HIGH && oldState == LOW){
+  if(buttonState == LOW && oldState == HIGH){
+  //if(buttonState == HIGH && oldState == LOW){
     // shift state
     stateshift = true;
     // prevent "bouncing"
@@ -120,7 +122,6 @@ int checkButtonState()
   if (stateshift) {
     switch(state){
       case WAITING:
-        digitalWrite(ledPin, LOW);      
         state = STOPWATCH;
         break;
       case STOPWATCH:
@@ -128,7 +129,6 @@ int checkButtonState()
         break;
       case FLASHING:
         state = WAITING;      
-        digitalWrite(ledPin, HIGH);
         break;
     }
   }
@@ -138,6 +138,7 @@ void waiting()
 {
   turnOffDigits();
   analogWrite(buttonLEDPin,LEDBrightness);
+  //analogWrite(buttonLEDPin, 0);
   delay(1);
   unsigned long currentMillis = millis();
  
@@ -171,6 +172,10 @@ void turnOffDigits()
 
 void stopwatch()
 {
+  // turn off the button  
+  analogWrite(buttonLEDPin,0);
+  
+  
   int count = 10;
   int val = 10; //this is for how many digits
   unsigned long currentMillis = millis();
@@ -195,6 +200,7 @@ void stopwatch()
     shiftOut(dataPin, clockPin, digitLED[clockDecaseconds]);
     shiftOut(dataPin, clockPin, digitLEDdot[clockSeconds]);
     shiftOut(dataPin, clockPin, digitLED[i]);
+
     digitalWrite(latchPin, 1);
     i++;
   }
